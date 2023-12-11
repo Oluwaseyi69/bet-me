@@ -1,22 +1,20 @@
 package com.example.betme.controller;
 
-import com.example.betme.dtos.request.AddDepositRequest;
-import com.example.betme.dtos.request.LoginRequest;
-import com.example.betme.dtos.request.RegisterUserRequest;
-import com.example.betme.dtos.response.LoginUserResponse;
-import com.example.betme.dtos.response.RegisterUserResponse;
+import com.example.betme.data.model.Player;
+import com.example.betme.dtos.request.*;
+import com.example.betme.dtos.response.*;
+import com.example.betme.services.BetService;
 import com.example.betme.services.PlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("BetMe")
 public class PlayerController {
     @Autowired
     private PlayerService playerService;
+    @Autowired
+    private BetService betService;
 
     @PostMapping("/registerPlayer")
     public RegisterUserResponse register(@RequestBody RegisterUserRequest registerUserRequest){
@@ -25,7 +23,6 @@ public class PlayerController {
         }catch (Exception error){
             RegisterUserResponse registerUserResponse = new RegisterUserResponse();
             registerUserResponse.setMessage(error.getMessage());
-//            registerUserResponse.setRegisterDate();
             return registerUserResponse;
         }
     }
@@ -43,13 +40,40 @@ public class PlayerController {
     }
 
     @PostMapping("/Deposit")
-    public String deposit(@RequestBody AddDepositRequest addDepositRequest){
+    public DepositResponse deposit(@RequestBody AddDepositRequest addDepositRequest){
         try{
-            playerService.depositFund(addDepositRequest);
-            return "Deposited Successful";
+           DepositResponse depositResponse = playerService.depositFund(addDepositRequest);
+            return depositResponse;
         }catch (Exception e){
-            return e.getMessage();
+            DepositResponse depositResponse = new DepositResponse();
+            depositResponse.setMessage(e.getMessage());
+            return depositResponse;
         }
+    }
+    @PatchMapping("/Withdraw")
+    public  WithdrawalResponse withdraw(@RequestBody WithdrawRequest withdrawRequest){
+        try{
+            WithdrawalResponse withdrawalResponse = playerService.withdrawFund(withdrawRequest);
+            return withdrawalResponse;
+        } catch (Exception e) {
+            WithdrawalResponse withdrawalResponse = new WithdrawalResponse();
+            withdrawalResponse.setMessage(e.getMessage());
+            return withdrawalResponse;
+        }
+
+    }
+    @PostMapping("/PlaceBet")
+    public BetResponse placeBet(@RequestBody AddBetRequest addBetRequest){
+        try{
+            BetResponse betResponse = playerService.placeBet(addBetRequest);
+            return betResponse;
+        }catch (Exception e){
+            BetResponse betResponse = new BetResponse();
+            betResponse.setMessage(e.getMessage());
+            return betResponse;
+        }
+
+
     }
 
 }

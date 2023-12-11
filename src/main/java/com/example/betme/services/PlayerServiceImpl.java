@@ -1,31 +1,34 @@
 package com.example.betme.services;
 
+import com.example.betme.data.model.Bet;
 import com.example.betme.data.model.Player;
+import com.example.betme.data.repository.BetRepository;
 import com.example.betme.data.repository.PlayerRepository;
-import com.example.betme.dtos.request.AddDepositRequest;
-import com.example.betme.dtos.request.LoginRequest;
-import com.example.betme.dtos.request.RegisterUserRequest;
-import com.example.betme.dtos.request.WithdrawRequest;
-import com.example.betme.dtos.response.DepositResponse;
-import com.example.betme.dtos.response.LoginUserResponse;
-import com.example.betme.dtos.response.RegisterUserResponse;
-import com.example.betme.dtos.response.WithdrawalResponse;
-import com.example.betme.exceptions.IncorrectDetails;
-import com.example.betme.exceptions.LogInFailureException;
-import com.example.betme.exceptions.PlayerAlreadyExist;
-import com.example.betme.exceptions.PlayerNotFound;
+import com.example.betme.dtos.request.*;
+import com.example.betme.dtos.response.*;
+import com.example.betme.exceptions.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+
+import static com.example.betme.utils.Mapper.map;
 
 @Service
 public class PlayerServiceImpl implements PlayerService{
     @Autowired
     private PlayerRepository playerRepository;
+    @Autowired
+    private PlayerService playerService;
+//    @Autowired
+//    private BetService betService;
+    @Autowired
+    private BetRepository betRepository;
+
 
     @Override
     public RegisterUserResponse register(RegisterUserRequest registerUserRequest) {
@@ -40,8 +43,9 @@ public class PlayerServiceImpl implements PlayerService{
         if(!player.get().getPassword().equals(loginRequest.getPassword()))
             throw new IncorrectDetails("Incorrect Username or Password");
 
-        player.get().setLogIn(true);
-        Player player1 = playerRepository.save(player.get());
+        Player newPlayer = player.get();
+        newPlayer.setLogIn(true);
+        Player player1 = playerRepository.save(newPlayer);
         LoginUserResponse loginUserResponse = new LoginUserResponse();
         loginUserResponse.setId(player1.getId());
         loginUserResponse.setMessage("Login Successful");
@@ -59,32 +63,40 @@ public class PlayerServiceImpl implements PlayerService{
     public DepositResponse depositFund(AddDepositRequest addDepositRequest) {
         Player player = findPlayerBy(addDepositRequest.getId());
         checkIfPlayerIsLoggedIn(player);
-        deposit(player,BigDecimal.valueOf(Long.parseLong(addDepositRequest.getAmount())));
-        playerRepository.save(player);
+        Player newPlayer = deposit(player,BigDecimal.valueOf(Long.parseLong(addDepositRequest.getAmount())));
+        playerRepository.save(newPlayer);
 
         DepositResponse depositResponse = new DepositResponse();
-        depositResponse.setId(player.getId());
+//        depositResponse.setId(player.getId());
         depositResponse.setMessage("Deposit Successfully");
+        depositResponse.setBalance(newPlayer.getBalance());
         return depositResponse;
     }
 
     @Override
     public WithdrawalResponse withdrawFund(WithdrawRequest withdrawRequest) {
-        Player player = findPlayerBy(withdrawRequest.getAccountId());
+        Player player = findPlayerBy(withdrawRequest.getId());
+        System.out.print(player);
         checkIfPlayerIsLoggedIn(player);
         Player player1 = withdrawal(player,BigDecimal.valueOf(Long.parseLong(withdrawRequest.getAmount())));
         playerRepository.save(player1);
 
         WithdrawalResponse withdrawalResponse = new WithdrawalResponse();
-        withdrawalResponse.setId(player1.getId());
-        withdrawalResponse.setBalance(player1.getBalance());
         withdrawalResponse.setMessage("Withdrawal Completed");
+        withdrawalResponse.setBalance(player1.getBalance());
+
         return withdrawalResponse;
     }
 
-    public void deposit(Player player, BigDecimal deposit) {
-        if (deposit.compareTo(BigDecimal.ZERO) > 0)
+
+
+    public Player deposit(Player player, BigDecimal deposit) {
+        if (deposit.compareTo(BigDecimal.ZERO) > 0) {
             player.setBalance(player.getBalance().add(deposit));
+            return player;
+        }
+        throw new AmountCanNotNegativeException("Amount cannot be negative");
+
     }
 
 
@@ -106,15 +118,17 @@ public class PlayerServiceImpl implements PlayerService{
     }
 
     private Player findPlayerBy(String id) {
-        System.out.println("i got here");
-        Player foundPlayer = getPlayerById(id);
+        Player foundPlayer =  getPlayerById(id);
         return foundPlayer;
     }
 
     private Player getPlayerById(String id) {
         Optional<Player> foundPlayer = playerRepository.findById(id);
-        if(foundPlayer.isEmpty()) throw new PlayerNotFound("Not found");
-        return foundPlayer.get();
+        //        if(foundPlayer.isEmpty()) throw new PlayerNotFound("Not found"){
+        //        };
+        return foundPlayer.orElse(null);
+
+
     }
 
     private Optional<Player> getPlayer(String username) {
@@ -127,26 +141,80 @@ public class PlayerServiceImpl implements PlayerService{
             if (player.isPresent())
                 throw new PlayerAlreadyExist("Player already Exist");
     }
-    private static Player map(RegisterUserRequest registerUserRequest){
-        Player user = new Player();
-        user.setUsername(registerUserRequest.getUsername());
-        user.setPassword(registerUserRequest.getPassword());
-        user.setBalance(BigDecimal.ZERO);
-        user.setLogIn(false);
-        user.setId(registerUserRequest.getId());
 
-        return user;
+//    @Override
+//    public BetResponse placeBet(AddBetRequest addBetRequest) {
+//        Player player = findPlayerBy(addBetRequest.getId());
+//        checkIfPlayerIsLoggedIn(player);
+//        if (player.getBalance().compareTo(addBetRequest.getAmount()) < 0) {
+//            BetResponse betResponse = new BetResponse();
+//            betResponse.setMessage("Insufficient funds");
+//            return betResponse;
+//        }
+//        addBetRequest.setUsername(addBetRequest.getUsername());
+//        addBetRequest.setEvent(addBetRequest.getEvent());
+//        addBetRequest.setAmount(addBetRequest.getAmount());
+//
+//        System.out.println("now i'm here");
+//        Bet bet = new Bet();
+//
+//        bet.setEvent(addBetRequest.getEvent());
+//        bet.setAmount(addBetRequest.getAmount());
+//        bet.setId(generateId());
+//        betRepository.save(bet);
+//
+//        BetResponse betResponse = new BetResponse();
+//        betResponse.setId(generateId());
+//        betResponse.setMessage("Bet Successful");
+////        betResponse.setMessage(ticketNumber);
+//
+//        return betResponse;
+//    }
+
+    @Override
+    public BetResponse placeBet(AddBetRequest addBetRequest) {
+        Player player = findPlayerBy(addBetRequest.getId());
+
+        if (player == null) {
+            BetResponse betResponse = new BetResponse();
+            betResponse.setMessage("Player not found");
+            return betResponse;
+        }
+
+        checkIfPlayerIsLoggedIn(player);
+
+        BigDecimal betAmount = addBetRequest.getAmount();
+        BigDecimal playerBalance = player.getBalance();
+
+        if (playerBalance.compareTo(betAmount) < 0) {
+            BetResponse betResponse = new BetResponse();
+            betResponse.setMessage("Insufficient funds");
+            return betResponse;
+        }
+
+        // Rest of your code remains unchanged...
+
+        BetResponse betResponse = new BetResponse();
+        betResponse.setId(generateId());
+        betResponse.setMessage("Bet Successful");
+        return betResponse;
     }
 
-    private static RegisterUserResponse map(Player player){
-        RegisterUserResponse registerUserResponse = new RegisterUserResponse();
-        registerUserResponse.setUsername(player.getUsername());
-        registerUserResponse.setRegisterDate(DateTimeFormatter
-                .ofPattern("EEE dd/MMM/yyyy HH:mm:ss a")
-                .format(LocalDateTime.now()));
-        registerUserResponse.setMessage("Successful");
-        registerUserResponse.setId(player.getId());
-        return registerUserResponse;
+
+
+    public String generateId() {
+        String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        StringBuilder stringBuilder = new StringBuilder();
+        SecureRandom random = new SecureRandom();
+
+        for (int i = 0; i < 8; i++) {
+            int randomIndex = random.nextInt(CHARACTERS.length());
+            char randomChar = CHARACTERS.charAt(randomIndex);
+            stringBuilder.append(randomChar);
+        }
+        return stringBuilder.toString();
     }
+
 }
 

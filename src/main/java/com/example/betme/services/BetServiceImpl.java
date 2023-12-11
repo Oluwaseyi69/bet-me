@@ -9,6 +9,7 @@ import com.example.betme.exceptions.LogInFailureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.random.RandomGenerator;
 
@@ -19,43 +20,47 @@ public class BetServiceImpl implements BetService{
 
     @Override
     public BetResponse placeBet(AddBetRequest addBetRequest) {
-        addBetRequest.setId(addBetRequest.getId());
+        addBetRequest.setUsername(addBetRequest.getUsername());
         addBetRequest.setEvent(addBetRequest.getEvent());
         addBetRequest.setAmount(addBetRequest.getAmount());
 
-//        checkIfPlayerIsLoggedIn();
+//        checkIfPlayerIsLoggedIn(player);
         System.out.println("now i'm here");
         Bet bet = new Bet();
         bet.setEvent(addBetRequest.getEvent());
         bet.setAmount(addBetRequest.getAmount());
-        generateId();
+        bet.setId(generateId());
         betRepository.save(bet);
 
         BetResponse betResponse = new BetResponse();
-        betResponse.setId(addBetRequest.getId());
-//        String betMessage = betResponse.getMessage();
+        betResponse.setId(generateId());
         betResponse.setMessage("Bet Successful");
 //        betResponse.setMessage(ticketNumber);
 
         return betResponse;
     }
     public void checkIfPlayerIsLoggedIn(Player player) {
-        if(!player.isLogIn()){
+        if(player.isLogIn()){
+            return;
+        }
+        else {
             System.out.println("i am here");
             throw new LogInFailureException("User not Logged in");
         }
     }
 
-    public String generateId(){
-        String alphnumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-//        String alphnumeric = "[Aa-Zz0-9]";
-        StringBuilder builder = new StringBuilder();
+    public String generateId() {
+        String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        StringBuilder stringBuilder = new StringBuilder();
+        SecureRandom random = new SecureRandom();
+
         for (int i = 0; i < 8; i++) {
-            int index = RandomGenerator.getDefault().nextInt(alphnumeric.length());
-            builder.append(alphnumeric.charAt(index));
+            int randomIndex = random.nextInt(CHARACTERS.length());
+            char randomChar = CHARACTERS.charAt(randomIndex);
+            stringBuilder.append(randomChar);
         }
-        System.out.println(builder);
-        return alphnumeric.toString();
+        return stringBuilder.toString();
     }
 
 }

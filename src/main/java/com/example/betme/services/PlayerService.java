@@ -1,14 +1,8 @@
 package com.example.betme.services;
 
 import com.example.betme.data.model.Player;
-import com.example.betme.dtos.request.AddDepositRequest;
-import com.example.betme.dtos.request.LoginRequest;
-import com.example.betme.dtos.request.RegisterUserRequest;
-import com.example.betme.dtos.request.WithdrawRequest;
-import com.example.betme.dtos.response.DepositResponse;
-import com.example.betme.dtos.response.LoginUserResponse;
-import com.example.betme.dtos.response.RegisterUserResponse;
-import com.example.betme.dtos.response.WithdrawalResponse;
+import com.example.betme.dtos.request.*;
+import com.example.betme.dtos.response.*;
 
 import java.math.BigDecimal;
 
@@ -20,4 +14,5 @@ public interface PlayerService {
     WithdrawalResponse withdrawFund(WithdrawRequest withdrawRequest);
 
 
+    BetResponse placeBet(AddBetRequest betRequest);
 }

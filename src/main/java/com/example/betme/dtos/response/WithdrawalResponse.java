@@ -8,5 +8,5 @@ import java.math.BigDecimal;
 public class WithdrawalResponse {
     private String message;
     private BigDecimal balance;
-    private String id;
+//    private String id;
 }

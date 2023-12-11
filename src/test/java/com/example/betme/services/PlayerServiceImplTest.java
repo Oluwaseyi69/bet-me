@@ -38,6 +38,8 @@ public class PlayerServiceImplTest {
     public void startWith(){
         playerRepository.deleteAll();
         betRepository.deleteAll();
+        playerRepository.deleteAll();
+
     }
 
     @Test
@@ -119,7 +121,7 @@ public class PlayerServiceImplTest {
         assertNotNull(depositResponse);
         String balance = playerService.checkBalance(loginUserResponse.getId());
 
-        System.out.println(balance);
+
 
         AddDepositRequest addDepositRequest1 = new AddDepositRequest();
         addDepositRequest1.setAmount("3000");
@@ -129,7 +131,6 @@ public class PlayerServiceImplTest {
         assertNotNull(depositResponse1);
 
         String balance1 = playerService.checkBalance(loginUserResponse.getId());
-        System.out.println(balance1);
         assertThat(balance1, is("5000"));
 
     }
@@ -158,16 +159,49 @@ public class PlayerServiceImplTest {
 
         WithdrawRequest withdrawRequest = new WithdrawRequest();
         withdrawRequest.setAmount("1000");
-        withdrawRequest.setAccountId(loginUserResponse.getId());
+        withdrawRequest.setId(loginUserResponse.getId());
 
         WithdrawalResponse withdrawalResponse = playerService.withdrawFund(withdrawRequest);
 
         assertNotNull(withdrawalResponse);
 
         assertEquals(withdrawalResponse.getBalance(), BigDecimal.valueOf(1000));
-        String balance1 = playerService.checkBalance(withdrawalResponse.getId());
+        String balance1 = playerService.checkBalance(loginUserResponse.getId());
         System.out.println(balance1);
         assertThat(balance1, is("1000"));
+
+
+    }
+    @Test
+    public void testThat_A_RegisteredPlayerCanPlaceBet(){
+        RegisterUserRequest registerUserRequest = new RegisterUserRequest();
+        registerUserRequest.setUsername("Seyi");
+        registerUserRequest.setPassword("password");
+
+        playerService.register(registerUserRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("Seyi");
+        loginRequest.setPassword("password");
+
+        LoginUserResponse loginUserResponse = playerService.login(loginRequest);
+        assertThat(loginUserResponse.isLoggedIn(), is(true));
+
+
+
+        Player player = new Player();
+        player.setLogIn(true);
+
+
+        AddBetRequest betRequest = new AddBetRequest();
+        betRequest.setAmount(BigDecimal.valueOf(10000));
+        betRequest.setEvent("Football");
+        betRequest.setUsername("Seyi");
+
+
+        BetResponse betResponse = betService.placeBet(betRequest);
+        assertNotNull(betResponse);
+        assertThat(betResponse.getId(),betResponse.getMessage(), is("Bet Successful"));
 
 
     }
@@ -185,23 +219,23 @@ public class PlayerServiceImplTest {
 
         LoginUserResponse loginUserResponse = playerService.login(loginRequest);
         assertThat(loginUserResponse.isLoggedIn(), is(true));
-
-        Bet bet = new Bet();
-        bet.setAmount(BigDecimal.valueOf(10000));
-        bet.setEvent("Football");
-        bet.setDate(bet.getDate());
-//        System.out.println(bet.getDate());
-
+//
+//        Bet bet = new Bet();
+//        bet.setAmount(BigDecimal.valueOf(10000));
+//        bet.setEvent("Football");
+//        bet.setDate(bet.getDate());
 
         AddBetRequest betRequest = new AddBetRequest();
         betRequest.setAmount(BigDecimal.valueOf(10000));
         betRequest.setEvent("Football");
-        betRequest.setDate(betRequest.getDate());
+        betRequest.setUsername("Seyi");
+//        betRequest.setFirstPlayerId(loginUserResponse.getId());
 
-        BetResponse betResponse = betService.placeBet(betRequest);
+        BetResponse betResponse = playerService.placeBet(betRequest);
         assertNotNull(betResponse);
         assertThat(betResponse.getId(),betResponse.getMessage(), is("Bet Successful"));
 
 
     }
+
 }
