@@ -176,9 +176,11 @@ public class PlayerServiceImpl implements PlayerService{
         Player player = findPlayerBy(addBetRequest.getId());
 
         if (player == null) {
-            BetResponse betResponse = new BetResponse();
-            betResponse.setMessage("Player not found");
-            return betResponse;
+//            BetResponse betResponse = new BetResponse();
+//            betResponse.setMessage("Player not found");
+//            return betResponse;
+
+            throw new PlayerNotFound("Player not found");
         }
 
         checkIfPlayerIsLoggedIn(player);
@@ -187,9 +189,10 @@ public class PlayerServiceImpl implements PlayerService{
         BigDecimal playerBalance = player.getBalance();
 
         if (playerBalance.compareTo(betAmount) < 0) {
-            BetResponse betResponse = new BetResponse();
-            betResponse.setMessage("Insufficient funds");
-            return betResponse;
+//            BetResponse betResponse = new BetResponse();
+//            betResponse.setMessage("Insufficient funds");
+//            return betResponse;
+            throw new InsufficientFundException("Insufficient Fund");
         }
 
         // Rest of your code remains unchanged...
