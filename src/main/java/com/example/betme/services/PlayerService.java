@@ -4,7 +4,7 @@ import com.example.betme.data.model.Player;
 import com.example.betme.dtos.request.*;
 import com.example.betme.dtos.response.*;
 
-import java.math.BigDecimal;
+import java.util.Optional;
 
 public interface PlayerService {
     RegisterUserResponse register (RegisterUserRequest registerUserRequest);
@@ -15,4 +15,8 @@ public interface PlayerService {
 
 
     BetResponse placeBet(AddBetRequest betRequest);
+    Optional<Player> notifyPlayer(String username, String message);
+
+
+
 }

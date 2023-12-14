@@ -1,10 +1,11 @@
 package com.example.betme.data.model;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class Player {
@@ -14,5 +15,12 @@ public class Player {
     private boolean logIn;
     private BigDecimal balance;
     private String message;
+    @DBRef
+    private List<Player> players = new ArrayList<>();
+
+    public String receiveNotification(Notification notification) {
+
+        return notification.toString();
+    }
 
 }

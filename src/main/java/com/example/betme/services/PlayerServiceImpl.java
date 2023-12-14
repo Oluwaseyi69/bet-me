@@ -1,6 +1,6 @@
 package com.example.betme.services;
 
-import com.example.betme.data.model.Bet;
+import com.example.betme.data.model.Notification;
 import com.example.betme.data.model.Player;
 import com.example.betme.data.repository.BetRepository;
 import com.example.betme.data.repository.PlayerRepository;
@@ -12,8 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 import static com.example.betme.utils.Mapper.map;
@@ -24,8 +22,6 @@ public class PlayerServiceImpl implements PlayerService{
     private PlayerRepository playerRepository;
     @Autowired
     private PlayerService playerService;
-//    @Autowired
-//    private BetService betService;
     @Autowired
     private BetRepository betRepository;
 
@@ -124,8 +120,6 @@ public class PlayerServiceImpl implements PlayerService{
 
     private Player getPlayerById(String id) {
         Optional<Player> foundPlayer = playerRepository.findById(id);
-        //        if(foundPlayer.isEmpty()) throw new PlayerNotFound("Not found"){
-        //        };
         return foundPlayer.orElse(null);
 
 
@@ -142,43 +136,11 @@ public class PlayerServiceImpl implements PlayerService{
                 throw new PlayerAlreadyExist("Player already Exist");
     }
 
-//    @Override
-//    public BetResponse placeBet(AddBetRequest addBetRequest) {
-//        Player player = findPlayerBy(addBetRequest.getId());
-//        checkIfPlayerIsLoggedIn(player);
-//        if (player.getBalance().compareTo(addBetRequest.getAmount()) < 0) {
-//            BetResponse betResponse = new BetResponse();
-//            betResponse.setMessage("Insufficient funds");
-//            return betResponse;
-//        }
-//        addBetRequest.setUsername(addBetRequest.getUsername());
-//        addBetRequest.setEvent(addBetRequest.getEvent());
-//        addBetRequest.setAmount(addBetRequest.getAmount());
-//
-//        System.out.println("now i'm here");
-//        Bet bet = new Bet();
-//
-//        bet.setEvent(addBetRequest.getEvent());
-//        bet.setAmount(addBetRequest.getAmount());
-//        bet.setId(generateId());
-//        betRepository.save(bet);
-//
-//        BetResponse betResponse = new BetResponse();
-//        betResponse.setId(generateId());
-//        betResponse.setMessage("Bet Successful");
-////        betResponse.setMessage(ticketNumber);
-//
-//        return betResponse;
-//    }
-
     @Override
     public BetResponse placeBet(AddBetRequest addBetRequest) {
         Player player = findPlayerBy(addBetRequest.getId());
 
         if (player == null) {
-//            BetResponse betResponse = new BetResponse();
-//            betResponse.setMessage("Player not found");
-//            return betResponse;
 
             throw new PlayerNotFound("Player not found");
         }
@@ -189,21 +151,27 @@ public class PlayerServiceImpl implements PlayerService{
         BigDecimal playerBalance = player.getBalance();
 
         if (playerBalance.compareTo(betAmount) < 0) {
-//            BetResponse betResponse = new BetResponse();
-//            betResponse.setMessage("Insufficient funds");
-//            return betResponse;
             throw new InsufficientFundException("Insufficient Fund");
         }
 
-        // Rest of your code remains unchanged...
 
         BetResponse betResponse = new BetResponse();
-        betResponse.setId(generateId());
         betResponse.setMessage("Bet Successful");
+        betResponse.setId(generateId());
         return betResponse;
     }
 
+    @Override
+    public Optional<Player> notifyPlayer(String username, String message) {
+        Optional<Player> player = playerRepository.findPlayerByUsername(username);
+        if(player.isPresent()){
+            Player player1 = player.get();
+            Notification notification = new Notification();
+           player1.receiveNotification(notification);
+        }
 
+        return player ;
+    }
 
     public String generateId() {
         String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

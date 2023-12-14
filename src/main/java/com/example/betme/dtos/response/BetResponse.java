@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class BetResponse {
-    private String message;
     private String id;
+    private String message;
+
 }

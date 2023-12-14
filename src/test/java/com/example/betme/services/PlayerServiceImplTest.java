@@ -224,18 +224,13 @@ public class PlayerServiceImplTest {
         addDepositRequest.setAmount("200000");
         addDepositRequest.setId(loginUserResponse.getId());
         DepositResponse depositResponse = playerService.depositFund(addDepositRequest);
-//
-//        Bet bet = new Bet();
-//        bet.setAmount(BigDecimal.valueOf(10000));
-//        bet.setEvent("Football");
-//        bet.setDate(bet.getDate());
+
 
         AddBetRequest betRequest = new AddBetRequest();
         betRequest.setId(loginUserResponse.getId());
         betRequest.setAmount(BigDecimal.valueOf(10000));
         betRequest.setEvent("Football");
         betRequest.setUsername("Seyi");
-//        betRequest.setFirstPlayerId(loginUserResponse.getId());
 
         BetResponse betResponse = playerService.placeBet(betRequest);
         assertNotNull(betResponse);
