@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter;
 public class Mapper {
     public static Player map(RegisterUserRequest registerUserRequest){
         Player user = new Player();
-        user.setUsername(registerUserRequest.getUsername());
+        user.setEmail(registerUserRequest.getUsername());
         user.setPassword(registerUserRequest.getPassword());
         user.setBalance(BigDecimal.ZERO);
         user.setLogIn(false);
@@ -22,12 +22,12 @@ public class Mapper {
 
     public static RegisterUserResponse map(Player player){
         RegisterUserResponse registerUserResponse = new RegisterUserResponse();
-        registerUserResponse.setUsername(player.getUsername());
+        registerUserResponse.setUsername(player.getEmail());
         registerUserResponse.setRegisterDate(DateTimeFormatter
                 .ofPattern("EEE dd/MMM/yyyy HH:mm:ss a")
                 .format(LocalDateTime.now()));
         registerUserResponse.setMessage("Successful");
-        registerUserResponse.setId(player.getId());
+        registerUserResponse.setPlayerId(player.getId());
         return registerUserResponse;
     }
 }

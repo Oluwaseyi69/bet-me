@@ -13,10 +13,7 @@ public interface PlayerService {
     DepositResponse depositFund(AddDepositRequest addDepositRequest);
     WithdrawalResponse withdrawFund(WithdrawRequest withdrawRequest);
 
-
     BetResponse placeBet(AddBetRequest betRequest);
-    Optional<Player> notifyPlayer(String username, String message);
-
-
+    UpdateBalanceResponse updateBalace(UpdateBalanceRequest updateBalanceRequest)
 
 }

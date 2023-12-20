@@ -10,17 +10,15 @@ import java.util.List;
 @Data
 public class Player {
     private String id;
-    private String username;
+    private String email;
     private String password;
     private boolean logIn;
     private BigDecimal balance;
     private String message;
     @DBRef
     private List<Player> players = new ArrayList<>();
+    @DBRef
+    private List<Notification> notifications = new ArrayList<>();
 
-    public String receiveNotification(Notification notification) {
-
-        return notification.toString();
-    }
 
 }

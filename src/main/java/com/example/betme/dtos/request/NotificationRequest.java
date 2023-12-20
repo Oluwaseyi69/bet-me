@@ -4,14 +4,12 @@ import com.example.betme.data.model.Player;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Data
-public class AddBetRequest {
-    private String firstPlayerId;
-    private String OpponentUsername;
+public class NotificationRequest {
+
+    private Player receivingPlayer;
     private String event;
+    private Player caller;
     private BigDecimal amount;
-    private Player starterPlayer;
-    private Player opponentPlayer;
 }

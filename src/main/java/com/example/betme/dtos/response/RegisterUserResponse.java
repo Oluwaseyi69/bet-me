@@ -7,5 +7,5 @@ public class RegisterUserResponse {
     private String username;
     private String registerDate;
     private String message;
-    private String id;
+    private String playerId;
 }
