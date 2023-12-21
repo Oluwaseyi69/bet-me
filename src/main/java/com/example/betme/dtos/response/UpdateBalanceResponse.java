@@ -5,9 +5,8 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class DepositResponse<T> {
+public class UpdateBalanceResponse {
+
+    private BigDecimal newBalance;
     private String message;
-//    private String id;
-    private BigDecimal balance;
-    private T createdPaymentRequest;
 }

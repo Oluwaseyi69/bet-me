@@ -2,77 +2,97 @@ package com.example.betme.services;
 
 import com.example.betme.data.model.Notification;
 import com.example.betme.data.model.Player;
-import com.example.betme.data.repository.BetRepository;
 import com.example.betme.data.repository.PlayerRepository;
 import com.example.betme.dtos.request.*;
 import com.example.betme.dtos.response.*;
 import com.example.betme.exceptions.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.security.SecureRandom;
 import java.util.Optional;
 
 import static com.example.betme.utils.Mapper.map;
 
 @Service
+@AllArgsConstructor
 public class PlayerServiceImpl implements PlayerService{
-    @Autowired
+
     private PlayerRepository playerRepository;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private BetRepository betRepository;
+    private BetService betService;
+    private NotificationService notificationService;
+    private PaymentService paymentService;
 
 
     @Override
     public RegisterUserResponse register(RegisterUserRequest registerUserRequest) {
-        findPlayer(registerUserRequest);
+        checkIfPlayerAlreadyExist(registerUserRequest);
         return map(playerRepository.save(map(registerUserRequest)));
     }
 
     @Override
     public LoginUserResponse login(LoginRequest loginRequest) {
-        Optional<Player> player = getPlayer(loginRequest.getUsername());
-        if(player.isEmpty()) throw new PlayerNotFound("Player not found");
-        if(!player.get().getPassword().equals(loginRequest.getPassword()))
-            throw new IncorrectDetails("Incorrect Username or Password");
+        Player player = getPlayer(loginRequest.getUsername());
+        validatePassword(loginRequest, player);
 
-        Player newPlayer = player.get();
-        newPlayer.setLogIn(true);
-        Player player1 = playerRepository.save(newPlayer);
+        player.setLogIn(true);
+        Player player1 = playerRepository.save(player);
+
         LoginUserResponse loginUserResponse = new LoginUserResponse();
-        loginUserResponse.setId(player1.getId());
+        loginUserResponse.setPlayerId(player1.getId());
         loginUserResponse.setMessage("Login Successful");
         loginUserResponse.setLoggedIn(player1.isLogIn());
+
         return loginUserResponse;
+    }
+
+    private static void validatePassword(LoginRequest loginRequest, Player player) {
+        if(!player.getPassword().equals(loginRequest.getPassword()))
+            throw new IncorrectDetails("Incorrect Username or Password");
     }
 
     @Override
     public String checkBalance(String id) {
-        Player player = findPlayerBy(id);
+        Player player = getPlayerById(id);
         return String.valueOf(player.getBalance());
     }
 
     @Override
-    public DepositResponse depositFund(AddDepositRequest addDepositRequest) {
-        Player player = findPlayerBy(addDepositRequest.getId());
+    public DepositResponse<?> depositFund(AddDepositRequest addDepositRequest) {
+        Player player = getPlayerById(addDepositRequest.getPlayerId());
         checkIfPlayerIsLoggedIn(player);
-        Player newPlayer = deposit(player,BigDecimal.valueOf(Long.parseLong(addDepositRequest.getAmount())));
-        playerRepository.save(newPlayer);
+        CreatePaymentResponse<?> createPaymentResponse = deposit(player,BigDecimal.valueOf(Long.parseLong(addDepositRequest.getAmount())));
 
-        DepositResponse depositResponse = new DepositResponse();
-//        depositResponse.setId(player.getId());
-        depositResponse.setMessage("Deposit Successfully");
-        depositResponse.setBalance(newPlayer.getBalance());
+        DepositResponse<CreatePaymentResponse<?>> depositResponse = new DepositResponse<>();
+        depositResponse.setMessage("Deposit request created Successfully");
+        depositResponse.setCreatedPaymentRequest(createPaymentResponse);
         return depositResponse;
+    }
+
+    public UpdateBalanceResponse updateBalace(UpdateBalanceRequest updateBalanceRequest){
+        Player player = getPlayerById(updateBalanceRequest.getPlayerId());
+
+        PaystackTransactionVerificationResponse<?> response = paymentService.verifyPayment(updateBalanceRequest.getReference());
+        if (response.getMessage().contains("Verification successful")){
+            player.setBalance(player.getBalance().add(updateBalanceRequest.getAmount()));
+            playerRepository.save(player);
+
+            return buildUpdateBalanceResponse(player);
+
+        }
+        throw new InvalidPaymentException("Deposit was not Successful");
+    }
+
+    private UpdateBalanceResponse buildUpdateBalanceResponse(Player player) {
+        UpdateBalanceResponse updateBalanceResponse = new UpdateBalanceResponse();
+        updateBalanceResponse.setNewBalance(player.getBalance());
+        updateBalanceResponse.setMessage("Balance Updated Successfully");
+        return updateBalanceResponse;
     }
 
     @Override
     public WithdrawalResponse withdrawFund(WithdrawRequest withdrawRequest) {
-        Player player = findPlayerBy(withdrawRequest.getId());
-        System.out.print(player);
+        Player player = getPlayerById(withdrawRequest.getPlayerId());
         checkIfPlayerIsLoggedIn(player);
         Player player1 = withdrawal(player,BigDecimal.valueOf(Long.parseLong(withdrawRequest.getAmount())));
         playerRepository.save(player1);
@@ -85,16 +105,20 @@ public class PlayerServiceImpl implements PlayerService{
     }
 
 
-
-    public Player deposit(Player player, BigDecimal deposit) {
+    public CreatePaymentResponse<?> deposit(Player player, BigDecimal deposit) {
         if (deposit.compareTo(BigDecimal.ZERO) > 0) {
-            player.setBalance(player.getBalance().add(deposit));
-            return player;
+            return paymentService.createPayment(buildPaymentRequest(player, deposit));
         }
         throw new AmountCanNotNegativeException("Amount cannot be negative");
 
     }
 
+    private CreatePaymentRequest buildPaymentRequest(Player player, BigDecimal deposit) {
+        CreatePaymentRequest createPaymentRequest = new CreatePaymentRequest();
+        createPaymentRequest.setEmail(player.getEmail());
+        createPaymentRequest.setAmount(deposit);
+        return createPaymentRequest;
+    }
 
 
     public Player withdrawal(Player player,BigDecimal withdrawal) {
@@ -113,79 +137,63 @@ public class PlayerServiceImpl implements PlayerService{
         }
     }
 
-    private Player findPlayerBy(String id) {
-        Player foundPlayer =  getPlayerById(id);
-        return foundPlayer;
-    }
-
     private Player getPlayerById(String id) {
         Optional<Player> foundPlayer = playerRepository.findById(id);
-        return foundPlayer.orElse(null);
-
+        if(foundPlayer.isEmpty()) throw new PlayerNotFound("User Not Found");
+        return foundPlayer.get();
 
     }
 
-    private Optional<Player> getPlayer(String username) {
+    private Player getPlayer(String username) {
         Optional<Player> player = playerRepository.findPlayerByUsername(username);
-        return player;
+        if(player.isEmpty()) throw new PlayerNotFound("User Not Found");
+        return player.get();
     }
 
-    private void findPlayer(RegisterUserRequest registerUserRequest) {
-            Optional<Player> player = getPlayer(registerUserRequest.getUsername());
+    private void checkIfPlayerAlreadyExist(RegisterUserRequest registerUserRequest) {
+            Optional<Player> player = playerRepository.findPlayerByUsername(registerUserRequest.getUsername());
             if (player.isPresent())
                 throw new PlayerAlreadyExist("Player already Exist");
     }
 
     @Override
     public BetResponse placeBet(AddBetRequest addBetRequest) {
-        Player player = findPlayerBy(addBetRequest.getId());
-
-        if (player == null) {
-
-            throw new PlayerNotFound("Player not found");
-        }
-
+        Player player = getPlayerById(addBetRequest.getFirstPlayerId());
         checkIfPlayerIsLoggedIn(player);
+        Player opponent = getPlayer(addBetRequest.getOpponentUsername());
 
-        BigDecimal betAmount = addBetRequest.getAmount();
-        BigDecimal playerBalance = player.getBalance();
+        addBetRequest.setStarterPlayer(player);
+        addBetRequest.setOpponentPlayer(opponent);
+        checkPlayersBalance(addBetRequest);
 
-        if (playerBalance.compareTo(betAmount) < 0) {
-            throw new InsufficientFundException("Insufficient Fund");
-        }
+        BetResponse response = betService.placeBet(addBetRequest);
+        Notification notification = notificationService.notifyPlayer(buildNotificationRequest(addBetRequest));
 
+        opponent.getNotifications().add(notification);
+        playerRepository.save(opponent);
+        return response;
 
-        BetResponse betResponse = new BetResponse();
-        betResponse.setMessage("Bet Successful");
-        betResponse.setId(generateId());
-        return betResponse;
     }
 
-    @Override
-    public Optional<Player> notifyPlayer(String username, String message) {
-        Optional<Player> player = playerRepository.findPlayerByUsername(username);
-        if(player.isPresent()){
-            Player player1 = player.get();
-            Notification notification = new Notification();
-           player1.receiveNotification(notification);
-        }
-
-        return player ;
+    private NotificationRequest buildNotificationRequest(AddBetRequest addBetRequest) {
+        NotificationRequest notificationRequest = new NotificationRequest();
+        notificationRequest.setCaller(addBetRequest.getStarterPlayer());
+        notificationRequest.setAmount(addBetRequest.getAmount());
+        notificationRequest.setEvent(addBetRequest.getEvent());
+        notificationRequest.setReceivingPlayer(addBetRequest.getOpponentPlayer());
+        return new NotificationRequest();
     }
 
-    public String generateId() {
-        String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-        StringBuilder stringBuilder = new StringBuilder();
-        SecureRandom random = new SecureRandom();
-
-        for (int i = 0; i < 8; i++) {
-            int randomIndex = random.nextInt(CHARACTERS.length());
-            char randomChar = CHARACTERS.charAt(randomIndex);
-            stringBuilder.append(randomChar);
+    private void checkPlayersBalance(AddBetRequest addBetRequest) {
+        if(addBetRequest.getStarterPlayer().getBalance().compareTo(addBetRequest.getAmount()) < 0){
+            throw new InsufficientFundException("Insufficient Balance");
         }
-        return stringBuilder.toString();
+
+        if(addBetRequest.getOpponentPlayer().getBalance().compareTo(addBetRequest.getAmount()) < 0){
+            throw new InsufficientFundException("Opponent Balance is Insufficient");
+        }
     }
+
 
 }
 
