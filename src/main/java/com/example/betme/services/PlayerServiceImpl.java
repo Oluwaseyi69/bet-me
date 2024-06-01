@@ -2,54 +2,79 @@ package com.example.betme.services;
 
 import com.example.betme.data.model.Notification;
 import com.example.betme.data.model.Player;
+import com.example.betme.data.model.Role;
 import com.example.betme.data.repository.PlayerRepository;
 import com.example.betme.dtos.request.*;
 import com.example.betme.dtos.response.*;
 import com.example.betme.exceptions.*;
+import com.example.betme.security.services.JwtService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
-import static com.example.betme.utils.Mapper.map;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class PlayerServiceImpl implements PlayerService{
 
     private PlayerRepository playerRepository;
     private BetService betService;
     private NotificationService notificationService;
     private PaymentService paymentService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationProvider authenticationProvider;
 
 
     @Override
     public RegisterUserResponse register(RegisterUserRequest registerUserRequest) {
-        checkIfPlayerAlreadyExist(registerUserRequest);
-        return map(playerRepository.save(map(registerUserRequest)));
+        Player registeredPlayer = Player.builder()
+                .username(registerUserRequest.getUsername())
+                .email(registerUserRequest.getEmail())
+                .password(passwordEncoder.encode(registerUserRequest.getPassword()))
+                .role(Role.USER)
+                .build();
+
+        playerRepository.save(registeredPlayer);
+        String jwtToken = jwtService.generateToken(registeredPlayer);
+        return RegisterUserResponse.builder()
+                .email(registeredPlayer.getEmail())
+                .token(jwtToken)
+                .message("Successfully created user")
+                .build();
     }
 
-    @Override
-    public LoginUserResponse login(LoginRequest loginRequest) {
-        Player player = getPlayer(loginRequest.getUsername());
-        validatePassword(loginRequest, player);
+    public LoginPlayerResponse login(LoginRequest request) {
 
-        player.setLogIn(true);
-        Player player1 = playerRepository.save(player);
+        try {
+            authenticationProvider.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
 
-        LoginUserResponse loginUserResponse = new LoginUserResponse();
-        loginUserResponse.setPlayerId(player1.getId());
-        loginUserResponse.setMessage("Login Successful");
-        loginUserResponse.setLoggedIn(player1.isLogIn());
+            Player player = playerRepository.findPlayerByUsername(request.getUsername()).orElse(null);
+            if (player == null) {
+                return null;
+            }
 
-        return loginUserResponse;
+            String jwtToken = jwtService.generateToken( player);
+
+            return LoginPlayerResponse.builder()
+                    .token(jwtToken)
+                    .message("successfully logged in")
+                    .build();
+        } catch (AuthenticationException e) {
+            return LoginPlayerResponse.builder().message( e.getMessage()).build();
+        }
     }
 
-    private static void validatePassword(LoginRequest loginRequest, Player player) {
-        if(!player.getPassword().equals(loginRequest.getPassword()))
-            throw new IncorrectDetails("Incorrect Username or Password");
-    }
 
     @Override
     public String checkBalance(String id) {
@@ -107,6 +132,7 @@ public class PlayerServiceImpl implements PlayerService{
 
     public CreatePaymentResponse<?> deposit(Player player, BigDecimal deposit) {
         if (deposit.compareTo(BigDecimal.ZERO) > 0) {
+            log.info("payRequest--->{}", buildPaymentRequest(player, deposit));
             return paymentService.createPayment(buildPaymentRequest(player, deposit));
         }
         throw new AmountCanNotNegativeException("Amount cannot be negative");
@@ -117,6 +143,7 @@ public class PlayerServiceImpl implements PlayerService{
         CreatePaymentRequest createPaymentRequest = new CreatePaymentRequest();
         createPaymentRequest.setEmail(player.getEmail());
         createPaymentRequest.setAmount(deposit);
+
         return createPaymentRequest;
     }
 
@@ -144,8 +171,8 @@ public class PlayerServiceImpl implements PlayerService{
 
     }
 
-    private Player getPlayer(String username) {
-        Optional<Player> player = playerRepository.findPlayerByUsername(username);
+    private Player getPlayer(String email) {
+        Optional<Player> player = playerRepository.findPlayerByUsername(email);
         if(player.isEmpty()) throw new PlayerNotFound("User Not Found");
         return player.get();
     }

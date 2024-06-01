@@ -8,12 +8,12 @@ import java.util.Optional;
 
 public interface PlayerService {
     RegisterUserResponse register (RegisterUserRequest registerUserRequest);
-    LoginUserResponse login(LoginRequest loginRequest);
+    LoginPlayerResponse login(LoginRequest loginRequest);
     String checkBalance(String id);
     DepositResponse depositFund(AddDepositRequest addDepositRequest);
     WithdrawalResponse withdrawFund(WithdrawRequest withdrawRequest);
 
     BetResponse placeBet(AddBetRequest betRequest);
-    UpdateBalanceResponse updateBalace(UpdateBalanceRequest updateBalanceRequest)
+    UpdateBalanceResponse updateBalace(UpdateBalanceRequest updateBalanceRequest);
 
 }

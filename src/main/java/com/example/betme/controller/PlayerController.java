@@ -1,42 +1,38 @@
 package com.example.betme.controller;
 
-import com.example.betme.data.model.Player;
 import com.example.betme.dtos.request.*;
 import com.example.betme.dtos.response.*;
 import com.example.betme.services.BetService;
 import com.example.betme.services.PlayerService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@CrossOrigin(origins = "http://127.0.0.1:5501")
 
-@RequestMapping("BetMe")
+@RequestMapping("api/v1/BetMe")
+@RequiredArgsConstructor(onConstructor_ = {@Autowired})
 public class PlayerController {
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private BetService betService;
+    private final PlayerService playerService;
+
+
 
     @PostMapping("/registerPlayer")
-    public RegisterUserResponse register(@RequestBody RegisterUserRequest registerUserRequest){
-        try {
-            return playerService.register(registerUserRequest);
-        }catch (Exception error){
-            RegisterUserResponse registerUserResponse = new RegisterUserResponse();
-            registerUserResponse.setMessage(error.getMessage());
-            return registerUserResponse;
-        }
+    public ApiResponse<?> register(@RequestBody RegisterUserRequest registerUserRequest){
+       try {
+           return ApiResponse.success(playerService.register(registerUserRequest),
+                   "Successfully registered");
+       } catch (Exception e) {
+           return ApiResponse.error(e.getMessage());
+       }
     }
     @PostMapping("/LoginPlayer")
-    public LoginUserResponse login(@RequestBody LoginRequest loginRequest){
+    public ApiResponse <?> login(@RequestBody LoginRequest loginRequest){
         try{
-            LoginUserResponse loginUserResponse = playerService.login(loginRequest);
-            return loginUserResponse;
+           return ApiResponse.success(playerService.login(loginRequest),
+                   "Successfully logged in");
         }catch (Exception error){
-            LoginUserResponse errorResponse = new LoginUserResponse();
-           errorResponse.setMessage(error.getMessage());
-           return errorResponse;
+           return ApiResponse.error(error.getMessage());
         }
 
     }

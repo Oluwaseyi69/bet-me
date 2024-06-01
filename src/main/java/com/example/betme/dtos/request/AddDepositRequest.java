@@ -9,4 +9,7 @@ public class AddDepositRequest {
 
     private String playerId;
     private String amount;
+    private String email;
+    private String username;
+
 }

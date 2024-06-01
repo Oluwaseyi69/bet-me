@@ -29,7 +29,7 @@ public class PayStackPaymentService implements PaymentService {
     private final PaymentConfiguration paymentConfig;
 
     @Override
-    public CreatePaymentResponse<?> createPayment(CreatePaymentRequest paymentRequest) {
+    public CreatePaymentResponse<CreatePaymentRequest> createPayment(CreatePaymentRequest paymentRequest) {
         String apiKey = paymentConfig.getPaystackApiKey();
         URI uri = create(paymentConfig.getPaystackUrl());
         RequestEntity<CreatePaymentRequest> data = buildPaymentRequest(paymentRequest, apiKey, uri);

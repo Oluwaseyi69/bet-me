@@ -12,9 +12,9 @@ public class GlobalCorsConfiguration implements WebMvcConfigurer {
     public  void addCorsMappings(CorsRegistry registry){
         registry.addMapping("/**")
                 .allowedMethods("POST","PUT", "GET", "PATCH", "DELETE")
-                .allowedOrigins("http://localhost:5501", "http://127.0.0.1:5501")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+//                .allowedOrigins("http://localhost:5501", "http://127.0.0.1:5501")
+                .allowedHeaders("*");
+//                .allowCredentials(true);
 
     }
 }
