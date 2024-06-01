@@ -36,11 +36,20 @@ public class PlayerServiceImpl implements PlayerService{
 
     @Override
     public RegisterUserResponse register(RegisterUserRequest registerUserRequest) {
+        Role userRole = registerUserRequest.getRole();
+
+        if (userRole == Role.ADMIN) {
+            if (!isValidAdminUser(registerUserRequest)) {
+                throw new IllegalArgumentException("Unauthorized to register as an admin");
+            }
+        } else {
+            userRole =Role.USER;
+        }
         Player registeredPlayer = Player.builder()
                 .username(registerUserRequest.getUsername())
                 .email(registerUserRequest.getEmail())
                 .password(passwordEncoder.encode(registerUserRequest.getPassword()))
-                .role(Role.USER)
+                .role(userRole)
                 .build();
 
         playerRepository.save(registeredPlayer);
@@ -50,6 +59,11 @@ public class PlayerServiceImpl implements PlayerService{
                 .token(jwtToken)
                 .message("Successfully created user")
                 .build();
+    }
+    private boolean isValidAdminUser(RegisterUserRequest request) {
+        String adminCode = "ADMIN_CODE";
+        return adminCode.equals(request.getAdminCode());
+
     }
 
     public LoginPlayerResponse login(LoginRequest request) {

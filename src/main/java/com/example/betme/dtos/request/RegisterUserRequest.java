@@ -1,5 +1,6 @@
 package com.example.betme.dtos.request;
 
+import com.example.betme.data.model.Role;
 import lombok.Data;
 
 @Data
@@ -8,4 +9,6 @@ public class RegisterUserRequest {
     private String password;
     private String id;
     private String email;
+    private Role role;
+    private String adminCode;
 }
